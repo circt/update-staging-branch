@@ -1,5 +1,8 @@
 name: 'Update Staging Branch'
 description: 'Update a staging branch onto main as part of Nightly CI'
+branding:
+  icon: 'git-commit'
+  color: 'blue'
 
 inputs:
   user:
@@ -33,6 +36,7 @@ runs:
         ref: ${{ inputs.main-branch }}
         fetch-depth: 0
     - name: 'Rebase ${{ inputs.staging-branch }} onto ${{ inputs.main-branch }}'
+      shell: bash
       run: |
         # Leave the staging branch unchanged if this is a PR.  This is not a
         # GitHub Actions-level "if" because we want this job to return success
@@ -54,6 +58,7 @@ runs:
         git push --force origin ${{ inputs.staging-branch }}
 
     - name: 'Switch to work branch'
+      shell: bash
       run: |
         if [[ ${{ github.event_name }} != 'pull_request' ]]; then
           git checkout ${{ inputs.staging-branch }}
