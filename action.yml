@@ -1,0 +1,62 @@
+name: 'Update Staging Branch'
+description: 'Update a staging branch onto main as part of Nightly CI'
+
+inputs:
+  user:
+    description: |
+      The name that will be associated with any created commits
+    type: string
+    required: true
+  email:
+    description: |
+      The email address that will be associated with any created commits
+    type: string
+    required: true
+  main-branch:
+    description: |
+      The name of the main branch.
+    type: string
+    default: 'main'
+  staging-branch:
+    description: |
+      The name of the branch containing accumulated patches that need to be
+      applied in order for the latest CIRCT to work with Chisel.
+    type: string
+    default: 'ci/ci-circt-nightly'
+
+runs:
+  using: composite
+  steps:
+    - name: 'Checkout ${{ inputs.main-branch }}'
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.main-branch }}
+        fetch-depth: 0
+    - name: 'Rebase ${{ inputs.staging-branch }} onto ${{ inputs.main-branch }}'
+      run: |
+        # Leave the staging branch unchanged if this is a PR.  This is not a
+        # GitHub Actions-level "if" because we want this job to return success
+        # (so that subsequent jobs run).
+        if [[ ${{ github.event_name }} == 'pull_request' ]]; then
+          exit 0
+        fi
+
+        # Rebase the staging branch on the default branch.  Create the staging
+        # branch if it doesn't exist.
+        git checkout -b ${{ inputs.staging-branch }}
+        if [[ ! `git fetch origin ${{ inputs.staging-branch }}` ]]; then
+          git reset --hard origin/${{ inputs.staging-branch }}
+          git config user.name ${{ inputs.user }}
+          git config user.email ${{ inputs.email }}
+          git rebase origin/${{ inputs.main-branch }}
+        fi
+
+        git push --force origin ${{ inputs.staging-branch }}
+
+    - name: 'Switch to work branch'
+      run: |
+        if [[ ${{ github.event_name }} != 'pull_request' ]]; then
+          git checkout ${{ inputs.staging-branch }}
+        else
+          git checkout ${{ github.ref }}
+        fi
