@@ -60,8 +60,8 @@ runs:
     - name: 'Switch to work branch'
       shell: bash
       run: |
-        if [[ ${{ github.event_name }} != 'pull_request' ]]; then
-          git checkout ${{ inputs.staging-branch }}
+        if [[ ${{ github.event_name }} == 'pull_request' ]]; then
+          git checkout ${{ github.head_ref }}
         else
-          git checkout ${{ github.ref }}
+          git checkout ${{ inputs.staging-branch }}
         fi
